@@ -27,7 +27,7 @@ http://localhost:9999/search?ip=127.0.0.1,131.2.1.1,47.128.1.3
 ```
 
 ## Benchmark
-| cpu | RAM | 请求ip数 | 耗时(ms)
+| cpu | RAM | request count | elapsed time(ms)
 |-----|-----|-----|-----|
 | i3-7100 3.90GHz x 2 | 8GB | 100 | 32ms
 | i3-7100 3.90GHz x 2 | 8GB | 200 | 57ms
