@@ -1,0 +1,8 @@
+[Unit]
+Description=Check ip info Http Server
+
+[Service]
+Type=simple
+ExecStart=/var/www/ip-svr/app
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always

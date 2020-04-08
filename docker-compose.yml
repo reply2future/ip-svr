@@ -1,0 +1,16 @@
+version: '3'
+services:
+  server:
+    build: ./
+    image: ip-svr
+    container_name: ip-svr-ctn
+    restart: on-failure
+    environment:
+      - INFO_LANG=en
+    ports:
+      - 9999:9999
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
