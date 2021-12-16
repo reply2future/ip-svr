@@ -95,7 +95,6 @@ func searchRouter(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		ipStrList = strings.Split(r.URL.Query().Get("ip"), ",")
-		break
 	case "POST":
 		var ips map[string][]string
 		body, _ := ioutil.ReadAll(r.Body)
@@ -123,16 +122,18 @@ func searchRouter(w http.ResponseWriter, r *http.Request) {
 	chLen := 0
 	log.Printf("current ip len:%d", ipLen)
 	ch := make(chan CountryInfo)
+	compileIpRegexp, err := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
 	for _, ip := range ipStrList {
 		if ip == "" {
 			continue
 		}
 		// 检验ip有效性
-		valid, err := regexp.MatchString(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`, ip)
-		if err != nil {
-			log.Printf("ip regexp error:%v - %s", err, ip)
-			continue
-		}
+		valid := compileIpRegexp.MatchString(ip)
 
 		if !valid {
 			log.Printf("ip invalid:%s", ip)
@@ -143,9 +144,9 @@ func searchRouter(w http.ResponseWriter, r *http.Request) {
 		chLen++
 	}
 
-	data := make([]CountryInfo, 0)
+	data := make([]CountryInfo, chLen)
 	for i := 0; i < chLen; i++ {
-		data = append(data, <-ch)
+		data[i] = <-ch
 	}
 
 	log.Printf("finished ip check len:%d", chLen)
@@ -154,6 +155,11 @@ func searchRouter(w http.ResponseWriter, r *http.Request) {
 		StatusCode: 1,
 		Data:       data,
 	})
+
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}	
 
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, string(ret))
