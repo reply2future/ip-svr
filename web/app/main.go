@@ -71,28 +71,35 @@ func searchIpInfo(db *maxminddb.Reader, ip string, c chan CountryInfo) {
 	}
 }
 
+type AppHandler func (http.ResponseWriter, *http.Request) *Ret
+
+func (app AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ret := app(w, r)
+
+	retJson, err := json.Marshal(ret)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, string(retJson))
+}
+
 /**
  * multiple ip is separated by comma
  * get or post method is supported.
  */
-func searchRouter(w http.ResponseWriter, r *http.Request) {
+func searchRouter(w http.ResponseWriter, r *http.Request) *Ret {
 	var ipStrList []string
 	switch r.Method {
 	case "GET":
 		query := r.URL.Query()
 		if query == nil || query.Get("ip") == "" {
-			log.Println("query or ip could not be empty")
+			errMsg := "query or ip could not be empty"
+			log.Println(errMsg)
 
-			ret, err := json.Marshal(Ret{
-				StatusCode: -3,
-			})
-
-			if err != nil {
-				log.Fatal(err)
-				os.Exit(-1)
-			}
-			fmt.Fprint(w, string(ret))
-			return
+			return &Ret{StatusCode: -3, Msg:  errMsg}
 		}
 		ipStrList = strings.Split(r.URL.Query().Get("ip"), ",")
 	case "POST":
@@ -103,6 +110,7 @@ func searchRouter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pwd, err := os.Getwd()
+
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -151,18 +159,10 @@ func searchRouter(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("finished ip check len:%d", chLen)
 
-	ret, err := json.Marshal(Ret{
+	return &Ret{
 		StatusCode: 1,
 		Data:       data,
-	})
-
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}	
-
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, string(ret))
+	}
 }
 
 func elapsed(op string) func() {
@@ -173,7 +173,7 @@ func elapsed(op string) func() {
 }
 
 func main() {
-	http.HandleFunc("/search", searchRouter)
+	http.Handle("/search", AppHandler(searchRouter))
 	err := http.ListenAndServe(":9999", nil)
 
 	if err != nil {
