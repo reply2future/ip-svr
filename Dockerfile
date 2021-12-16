@@ -1,4 +1,4 @@
-FROM golang:1.13
+FROM --platform=amd64 golang:1.17.5-alpine3.15
 
 WORKDIR /go/src/app
 COPY . .
